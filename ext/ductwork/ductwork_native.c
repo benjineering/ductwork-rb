@@ -79,7 +79,6 @@ dw_instance *dw_init(
   void *userData
 ) {
   dw_instance *dw = (dw_instance *)malloc(sizeof(dw_instance));
-  dw->path = requestedPath;
   dw->errorHandler = errorHandler;
   dw->type = type;
   dw->userData = userData;
@@ -93,7 +92,7 @@ dw_instance *dw_init(
     return NULL;
   }
 
-  strcpy((char *)dw->fullPath, dw->path);
+  dw_set_path(dw, requestedPath);
   return dw;
 }
 
@@ -158,6 +157,13 @@ void dw_open_pipe(
 
 const char *dw_get_full_path(dw_instance *dw) {
   return dw->fullPath;
+}
+
+void dw_set_path(dw_instance *dw, const char *path) {
+  if (path) {
+    dw->path = path;
+    strcpy((char *)dw->fullPath, dw->path);
+  }
 }
 
 void *dw_get_user_data(dw_instance *dw) {
