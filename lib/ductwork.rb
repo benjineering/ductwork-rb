@@ -1,6 +1,5 @@
-require "ductwork/version"
+require 'ductwork/ductwork'
+require 'ductwork/version'
 
 module Ductwork
-  class Error < StandardError; end
-  # Your code goes here...
 end
