@@ -59,6 +59,23 @@ static VALUE ductwork_server_create(VALUE self, VALUE timeout) {
   return Qnil;
 }
 
+static VALUE ductwork_server_open(int argc, VALUE *argv, VALUE self) {
+  VALUE timeout;
+  bool timeoutPassed = rb_scan_args(argc, argv, "01", &timeout);
+  int intTimeout = -1;
+
+  if (timeoutPassed) {
+    Check_Type(timeout, T_FIXNUM);
+    int intTimeout = FIX2INT(timeout);
+  }
+
+  dw_instance *dw;
+  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
+  
+  bool openOk = dw_open_pipe(dw, intTimeout); // TODO: create rb thread?
+  return openOk ? Qtrue : Qfalse;
+}
+
 /*
  * Client
 */
@@ -85,6 +102,23 @@ static VALUE ductwork_client_init(VALUE self, VALUE path) {
   return TypedData_Wrap_Struct(Client, &dw_type, dw);
 }
 
+static VALUE ductwork_client_open(int argc, VALUE *argv, VALUE self) {
+  VALUE timeout;
+  bool timeoutPassed = rb_scan_args(argc, argv, "01", &timeout);
+  int intTimeout = -1;
+
+  if (timeoutPassed) {
+    Check_Type(timeout, T_FIXNUM);
+    int intTimeout = FIX2INT(timeout);
+  }
+
+  dw_instance *dw;
+  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
+  
+  bool openOk = dw_open_pipe(dw, intTimeout); // TODO: create rb thread?
+  return openOk ? Qtrue : Qfalse;
+}
+
 /*
  * Ruby
 */
@@ -96,8 +130,10 @@ void Init_ductwork(void) {
   rb_define_alloc_func(Server, ductwork_server_allocate);
   rb_define_method(Server, "initialize", ductwork_server_init, 1);
   rb_define_method(Server, "create", ductwork_server_create, 1);
+  rb_define_method(Server, "open", ductwork_server_open, -1);
 
   Client = rb_define_class_under(Ductwork, "Client", rb_cObject);
   rb_define_alloc_func(Client, ductwork_client_allocate);
   rb_define_method(Client, "initialize", ductwork_client_init, 1);
+  rb_define_method(Client, "open", ductwork_client_open, -1);
 }
