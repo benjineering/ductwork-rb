@@ -1,5 +1,5 @@
 #include <ruby.h>
-#include "ductwork_native.h"
+#include "ductwork.h"
 
 VALUE Ductwork;
 VALUE Server;
@@ -66,7 +66,7 @@ static VALUE ductwork_server_open(int argc, VALUE *argv, VALUE self) {
 
   if (timeoutPassed) {
     Check_Type(timeout, T_FIXNUM);
-    int intTimeout = FIX2INT(timeout);
+    intTimeout = FIX2INT(timeout);
   }
 
   dw_instance *dw;
@@ -109,7 +109,7 @@ static VALUE ductwork_client_open(int argc, VALUE *argv, VALUE self) {
 
   if (timeoutPassed) {
     Check_Type(timeout, T_FIXNUM);
-    int intTimeout = FIX2INT(timeout);
+    intTimeout = FIX2INT(timeout);
   }
 
   dw_instance *dw;

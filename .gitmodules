@@ -1,0 +1,3 @@
+[submodule "ext/ductwork/native"]
+	path = ext/ductwork/native
+	url = git@github.com:benjineering/ductwork.git
