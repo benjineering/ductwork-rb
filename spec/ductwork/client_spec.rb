@@ -1,7 +1,9 @@
 Client = Ductwork::Client 
 
 RSpec.describe Client do
-  let(:path) { '/Users/ben/Desktop/dw.fifo' }
+  let(:path) { './tmp/dw.fifo' }
+
+  let(:client) { Client.new(path) }
 
   let(:server) { Server.new(path) }
 
@@ -17,7 +19,13 @@ RSpec.describe Client do
     # check string param is required
 
     it 'returns a client instance' do
-      expect(Client.new('/Users/ben/Desktop/dw.fifo')).to be_a Client
+      expect(client).to be_a Client
+    end
+  end
+
+  describe '#path' do
+    it 'returns the full path to the FIFO' do
+      expect(client.path).to eq path
     end
   end
 
@@ -26,7 +34,7 @@ RSpec.describe Client do
 
     it 'returns an IO' do
       thread = Thread.new { IO.write(path, 'message') }
-      expect(server.open).to be_a IO
+      expect(client.open).to be_a IO
       thread.join
     end
   end

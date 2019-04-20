@@ -7,6 +7,7 @@ task :copy_native do
   src = 'ext/ductwork/native/src/'
   dest = 'ext/ductwork/'
 
+  # TODO: write header comment re. overwriting
   Dir["#{src}*"].each do |path| 
     name = path.split('/').last
     FileUtils.cp(path, dest + name)
