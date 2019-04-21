@@ -1,5 +1,3 @@
-Server = Ductwork::Server
-
 RSpec.describe Server do
   let(:path) { File.expand_path('./tmp/dw.fifo') }
 
@@ -7,7 +5,9 @@ RSpec.describe Server do
 
   let(:client) { Ductwork::Client.new(path) }
 
-  let(:timeout) { 1000 }
+  let(:short_timeout) { 50 }
+
+  let(:timeout) { 2000 }
 
   before(:each) { File.delete(path) if File.exist?(path) }
 
@@ -40,26 +40,19 @@ RSpec.describe Server do
     before(:each) { server.create(timeout) }
 
     context "when the pipe isn't opened for reading" do
-      it 'raises a timeout error after the timeout is reached' do
-        start = Time.now
-        expect { server.open }.to raise_error Ductwork::TimeoutError
-        finish = Time.now
-        actual_timeout = (finish - start) * 1000
-        #expect(actual_timeout).to eq timeout # TODO: custom matcher raise_error_after_ms
-      end
-
-      context 'when a timeout value is passed' do
-        skip 'raises a timeout error after the overidden timeout is reached'
+      it 'raises a timeout error' do
+        expect { server.open(short_timeout) }.to raise_error Ductwork::TimeoutError
       end
     end
 
     context 'when the pipe is already open for reading' do
-      it 'returns an open IO' do
-        result = nil
+      it 'returns an open pipe' do
+        pipe = nil
         Thread.new { `cat #{path}` }
-        server_thread = Thread.new { result = server.open }
+        server_thread = Thread.new { pipe = server.open }
         server_thread.join
-        expect(result).to be_a IO
+        expect(pipe).to be_a Pipe
+        expect { pipe.write('p00ts') }.not_to raise_error
       end
     end
   end

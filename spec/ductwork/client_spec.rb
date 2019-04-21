@@ -1,5 +1,3 @@
-Client = Ductwork::Client 
-
 RSpec.describe Client do
   let(:path) { './tmp/dw.fifo' }
 
@@ -7,9 +5,12 @@ RSpec.describe Client do
 
   let(:server) { Server.new(path) }
 
-  let(:timeout) { 500 }
+  let(:timeout) { 2000 }
 
-  before(:each) { File.delete(path) if File.exist?(path) }
+  before(:each) do
+    File.delete(path) if File.exist?(path)
+    server.create(timeout)
+  end
 
   it 'is a class' do
     expect(Client).to be_a Class
@@ -33,9 +34,11 @@ RSpec.describe Client do
     # TODO: timeout context
 
     it 'returns an IO' do
-      thread = Thread.new { IO.write(path, 'message') }
-      expect(client.open).to be_a IO
-      thread.join
+      pipe = nil
+      Thread.new { `echo message >> #{path}` }
+      client_thread = Thread.new { pipe = client.open(timeout) }
+      client_thread.join
+      expect(pipe).to be_a Pipe
     end
   end
 end
