@@ -5,6 +5,8 @@ RSpec.describe Client do
 
   let(:server) { Server.new(path) }
 
+  let(:short_timeout) { 50 }
+
   let(:timeout) { 2000 }
 
   before(:each) do
@@ -31,14 +33,27 @@ RSpec.describe Client do
   end
 
   describe '#open' do
-    # TODO: timeout context
+    context "when the pipe isn't opened for reading" do
+      it 'raises a timeout error' do
+        expect { 
+          client.open(short_timeout) 
+        }.to raise_error Ductwork::TimeoutError
+      end
+    end
 
-    it 'returns an IO' do
-      pipe = nil
-      Thread.new { `echo message >> #{path}` }
-      client_thread = Thread.new { pipe = client.open(timeout) }
-      client_thread.join
-      expect(pipe).to be_a Pipe
+    context 'when the pipe is already open for reading' do
+      it 'returns a pipe' do
+        pipe = nil
+        Thread.new { `echo p00ts >> #{path}` }
+        Thread.new { pipe = client.open(timeout) }.join
+        expect(pipe).to be_a Pipe
+      end
+    end
+
+    context 'when a block is passed' do
+      skip 'yields an open pipe'
+
+      skip 'closes the pipe when the block closes'
     end
   end
 end

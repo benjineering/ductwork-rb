@@ -41,7 +41,9 @@ RSpec.describe Server do
 
     context "when the pipe isn't opened for reading" do
       it 'raises a timeout error' do
-        expect { server.open(short_timeout) }.to raise_error Ductwork::TimeoutError
+        expect { 
+          server.open(short_timeout) 
+        }.to raise_error Ductwork::TimeoutError
       end
     end
 
@@ -49,11 +51,20 @@ RSpec.describe Server do
       it 'returns an open pipe' do
         pipe = nil
         Thread.new { `cat #{path}` }
-        server_thread = Thread.new { pipe = server.open }
-        server_thread.join
+        Thread.new { pipe = server.open }.join
         expect(pipe).to be_a Pipe
         expect { pipe.write('p00ts') }.not_to raise_error
       end
+
+      context 'when a block is passed' do
+        skip 'yields an open pipe'
+
+        skip 'closes the pipe when the block closes'
+      end
     end
   end
+
+  skip '#close'
+
+  skip '#write'
 end

@@ -41,4 +41,10 @@ RSpec.describe Pipe do
       expect { pipe.write('p00ts') }.not_to raise_error
     end
   end
+
+  skip '#read'
+
+  skip '#readable?'
+
+  skip '#writable?'
 end
