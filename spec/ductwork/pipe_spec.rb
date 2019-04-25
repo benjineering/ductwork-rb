@@ -1,15 +1,16 @@
 RSpec.describe Pipe do
-  let(:path) { File.expand_path('./tmp/dw.fifo') }
+  let(:server) { Server.new(FIFO_PATH) }
 
-  let(:server) { Server.new(path) }
-
-  let(:client) { Client.new(path) }
-
-  let(:timeout) { 2000 }
+  let(:client) { Client.new(FIFO_PATH) }
 
   before(:each) do
-    File.delete(path) if File.exist?(path)
-    server.create(timeout)
+    File.delete(FIFO_PATH) if File.exist?(FIFO_PATH)
+    server.create(LONG_TIMEOUT)
+  end
+
+  after(:each) do
+    server.close if server.open?
+    client.close if client.open?
   end
 
   it 'is a class' do
@@ -34,10 +35,8 @@ RSpec.describe Pipe do
 
   describe '#write' do
     it 'is ok' do
-      pipe = nil
-      Thread.new { `cat #{path}` }
-      server_thread = Thread.new { pipe = server.open }
-      server_thread.join      
+      Thread.new { `cat #{FIFO_PATH}` }
+      pipe = server.open
       expect { pipe.write('p00ts') }.not_to raise_error
     end
   end

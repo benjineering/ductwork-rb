@@ -6,6 +6,14 @@
 #include <unistd.h>
 #endif
 
+#define UNWRAP() \
+dw_instance *dw; \
+TypedData_Get_Struct(self, dw_instance, &dw_type, dw)
+
+#define UNWRAP_PARENT() \
+dw_instance *dw; \
+TypedData_Get_Struct(parent, dw_instance, &dw_type, dw)
+
 VALUE Ductwork;
 VALUE Base;
 VALUE TimeoutError;
@@ -37,14 +45,13 @@ static VALUE ductwork_base_init(VALUE self, VALUE path) {
   Check_Type(path, T_STRING);
   const char *strPath = StringValueCStr(path);
 
-  dw_instance *dw;
-  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
+  UNWRAP();
   dw_set_path(dw, strPath);
 
   return self;
 }
 
-static VALUE ductwork_base_open(int argc, VALUE *argv, VALUE self) {
+static VALUE ductwork_base_open_async(int argc, VALUE *argv, VALUE self) {
   VALUE timeout;
   bool timeoutPassed = rb_scan_args(argc, argv, "01", &timeout);
   int intTimeout = -1;
@@ -54,8 +61,7 @@ static VALUE ductwork_base_open(int argc, VALUE *argv, VALUE self) {
     intTimeout = FIX2INT(timeout);
   }
 
-  dw_instance *dw;
-  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
+  UNWRAP();
 
   bool openOk = dw_open_pipe(dw, intTimeout);
 
@@ -71,10 +77,20 @@ static VALUE ductwork_base_open(int argc, VALUE *argv, VALUE self) {
   return rb_funcall(Pipe, rb_intern("new"), 1, self);
 }
 
+static VALUE ductwork_base_close(VALUE self) {
+  UNWRAP();
+  dw_close_pipe(dw);
+  return Qnil;
+}
+
 static VALUE ductwork_base_path(VALUE self) {
-  dw_instance *dw;
-  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
+  UNWRAP();
   return rb_str_new_cstr(dw_get_full_path(dw));
+}
+
+static VALUE ductwork_base_is_open(VALUE self) {
+  UNWRAP();
+  return dw_get_fd(dw) ? Qtrue : Qfalse;
 }
 
 /*
@@ -93,10 +109,7 @@ static VALUE ductwork_server_allocate(VALUE klass) {
 static VALUE ductwork_server_create(VALUE self, VALUE timeout) {
   Check_Type(timeout, T_FIXNUM);
   int intTimeout = FIX2INT(timeout);
-
-  dw_instance *dw;
-  TypedData_Get_Struct(self, dw_instance, &dw_type, dw);
-  
+  UNWRAP();  
   dw_create_pipe(dw, intTimeout);
   return Qnil;
 }
@@ -123,22 +136,19 @@ static VALUE ductwork_pipe_init(VALUE self, VALUE dw_obj) {
 }
 
 static VALUE ductwork_pipe_class_read(VALUE self, VALUE length) {
-  // TODO
+  // TODO: read
   return Qnil;
 }
 
 static VALUE ductwork_pipe_class_write(VALUE self, VALUE str) {
-  // TODO
+  // TODO: write
   return Qnil;
 }
 
 static VALUE ductwork_pipe_read(VALUE self, VALUE length) {
   VALUE parent = rb_ivar_get(self, PipeParentId);
   size_t lengthInt = rb_num2long(length);
-
-  dw_instance *dw;
-  TypedData_Get_Struct(parent, dw_instance, &dw_type, dw);
-  
+  UNWRAP_PARENT();
   char *buffer = (char *)malloc(lengthInt);
 
 #ifndef _WIN32
@@ -157,9 +167,7 @@ static VALUE ductwork_pipe_read(VALUE self, VALUE length) {
 static VALUE ductwork_pipe_write(VALUE self, VALUE str) {
   VALUE parent = rb_ivar_get(self, PipeParentId);
   const char *cStr = StringValuePtr(str);
-
-  dw_instance *dw;
-  TypedData_Get_Struct(parent, dw_instance, &dw_type, dw);
+  UNWRAP_PARENT();
 
 #ifndef _WIN32
   size_t result = write(dw_get_fd(dw), cStr, RSTRING_LEN(str));
@@ -188,8 +196,10 @@ void Init_ductwork(void) {
 
   Base = rb_define_class_under(Ductwork, "Base", rb_cObject);
   rb_define_method(Base, "initialize", ductwork_base_init, 1);
-  rb_define_method(Base, "open", ductwork_base_open, -1);
+  rb_define_method(Base, "open_async", ductwork_base_open_async, -1);
+  rb_define_method(Base, "close", ductwork_base_close, 0);
   rb_define_method(Base, "path", ductwork_base_path, 0);
+  rb_define_method(Base, "open?", ductwork_base_is_open, 0);
 
   Server = rb_define_class_under(Ductwork, "Server", Base);
   rb_define_alloc_func(Server, ductwork_server_allocate);

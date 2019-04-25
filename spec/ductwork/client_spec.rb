@@ -1,17 +1,16 @@
 RSpec.describe Client do
-  let(:path) { './tmp/dw.fifo' }
+  let(:client) { Client.new(FIFO_PATH) }
 
-  let(:client) { Client.new(path) }
-
-  let(:server) { Server.new(path) }
-
-  let(:short_timeout) { 50 }
-
-  let(:timeout) { 2000 }
+  let(:server) { Server.new(FIFO_PATH) }
 
   before(:each) do
-    File.delete(path) if File.exist?(path)
-    server.create(timeout)
+    File.delete(FIFO_PATH) if File.exist?(FIFO_PATH)
+    server.create(LONG_TIMEOUT)
+  end
+
+  after(:each) do
+    server.close if server.open?
+    client.close if client.open?
   end
 
   it 'is a class' do
@@ -28,7 +27,7 @@ RSpec.describe Client do
 
   describe '#path' do
     it 'returns the full path to the FIFO' do
-      expect(client.path).to eq path
+      expect(client.path).to eq FIFO_PATH
     end
   end
 
@@ -36,17 +35,15 @@ RSpec.describe Client do
     context "when the pipe isn't opened for reading" do
       it 'raises a timeout error' do
         expect { 
-          client.open(short_timeout) 
+          client.open(SHORT_TIMEOUT) 
         }.to raise_error Ductwork::TimeoutError
       end
     end
 
     context 'when the pipe is already open for reading' do
       it 'returns a pipe' do
-        pipe = nil
-        Thread.new { `echo p00ts >> #{path}` }
-        Thread.new { pipe = client.open(timeout) }.join
-        expect(pipe).to be_a Pipe
+        Thread.new { `echo p00ts >> #{FIFO_PATH}` }
+        expect(client.open(LONG_TIMEOUT)).to be_a Pipe
       end
     end
 
@@ -54,6 +51,22 @@ RSpec.describe Client do
       skip 'yields an open pipe'
 
       skip 'closes the pipe when the block closes'
+    end
+  end
+
+  describe '#open?' do
+    context 'when client is open' do
+      it 'returns true' do
+        Thread.new { `echo p00ts >> #{FIFO_PATH}` }
+        client.open(LONG_TIMEOUT)
+        expect(client.open?).to be true
+      end
+    end
+
+    context "when client isn't open" do
+      it 'returns false' do
+        expect(client.open?).to be false
+      end
     end
   end
 end

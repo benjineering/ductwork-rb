@@ -6,6 +6,10 @@ Client = Ductwork::Client
 Server = Ductwork::Server
 Pipe = Ductwork::Pipe
 
+FIFO_PATH = File.expand_path('./tmp/dw.fifo')
+LONG_TIMEOUT = 2_000
+SHORT_TIMEOUT = 50
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = '.rspec_status'
