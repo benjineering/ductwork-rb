@@ -8,11 +8,6 @@ RSpec.describe Client do
     server.create(LONG_TIMEOUT)
   end
 
-  after(:each) do
-    server.close if server.open?
-    client.close if client.open?
-  end
-
   it 'is a class' do
     expect(Client).to be_a Class
   end
@@ -32,18 +27,21 @@ RSpec.describe Client do
   end
 
   describe '#open' do
-    context "when the pipe isn't opened for reading" do
+    context "when the pipe isn't opened for writing" do
       it 'raises a timeout error' do
-        expect { 
-          client.open(SHORT_TIMEOUT) 
-        }.to raise_error Ductwork::TimeoutError
+        expect { client.open(SHORT_TIMEOUT) }.to raise_error TimeoutError
+        expect(client.open?).to be false
       end
     end
 
-    context 'when the pipe is already open for reading' do
-      it 'returns a pipe' do
-        Thread.new { `echo p00ts >> #{FIFO_PATH}` }
-        expect(client.open(LONG_TIMEOUT)).to be_a Pipe
+    context 'when the pipe is opened for writing' do
+      it 'returns a pipe', :focus do
+        pipe = nil
+        thread = Thread.new { pipe = client.open(LONG_TIMEOUT) }
+        `echo p00t >> #{FIFO_PATH}`
+        thread.join
+        expect(pipe).to be_a Pipe
+        client.close
       end
     end
 
@@ -57,9 +55,11 @@ RSpec.describe Client do
   describe '#open?' do
     context 'when client is open' do
       it 'returns true' do
-        Thread.new { `echo p00ts >> #{FIFO_PATH}` }
-        client.open(LONG_TIMEOUT)
+        thread = Thread.new { client.open(LONG_TIMEOUT) }
+        `echo p00t >> #{FIFO_PATH}`
+        thread.join
         expect(client.open?).to be true
+        client.close
       end
     end
 

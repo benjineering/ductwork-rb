@@ -5,9 +5,10 @@ require 'pp'
 Client = Ductwork::Client
 Server = Ductwork::Server
 Pipe = Ductwork::Pipe
+TimeoutError = Ductwork::TimeoutError
 
 FIFO_PATH = File.expand_path('./tmp/dw.fifo')
-LONG_TIMEOUT = 2_000
+LONG_TIMEOUT = 2000
 SHORT_TIMEOUT = 50
 
 RSpec.configure do |config|

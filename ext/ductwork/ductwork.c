@@ -51,7 +51,7 @@ static VALUE ductwork_base_init(VALUE self, VALUE path) {
   return self;
 }
 
-static VALUE ductwork_base_open_async(int argc, VALUE *argv, VALUE self) {
+static VALUE ductwork_base_open(int argc, VALUE *argv, VALUE self) {
   VALUE timeout;
   bool timeoutPassed = rb_scan_args(argc, argv, "01", &timeout);
   int intTimeout = -1;
@@ -69,7 +69,7 @@ static VALUE ductwork_base_open_async(int argc, VALUE *argv, VALUE self) {
     rb_raise(TimeoutError, "%s", "Open timed out");
     return Qnil;
   }
-  else if (dw_get_fd(dw) == -1) {
+  else if (dw_get_fd(dw) < 1) {
     rb_raise(rb_eIOError, "%s %s", dw_get_last_error(dw), dw_get_full_path(dw));
     return Qnil;
   }
@@ -90,7 +90,7 @@ static VALUE ductwork_base_path(VALUE self) {
 
 static VALUE ductwork_base_is_open(VALUE self) {
   UNWRAP();
-  return dw_get_fd(dw) ? Qtrue : Qfalse;
+  return dw_get_fd(dw) == -1 ? Qfalse : Qtrue;
 }
 
 /*
@@ -196,7 +196,7 @@ void Init_ductwork(void) {
 
   Base = rb_define_class_under(Ductwork, "Base", rb_cObject);
   rb_define_method(Base, "initialize", ductwork_base_init, 1);
-  rb_define_method(Base, "open_async", ductwork_base_open_async, -1);
+  rb_define_method(Base, "open", ductwork_base_open, -1);
   rb_define_method(Base, "close", ductwork_base_close, 0);
   rb_define_method(Base, "path", ductwork_base_path, 0);
   rb_define_method(Base, "open?", ductwork_base_is_open, 0);

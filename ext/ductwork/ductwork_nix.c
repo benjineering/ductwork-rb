@@ -55,10 +55,13 @@ void *open_async(dw_instance *dw) {
   int perms = dw->type == DW_SERVER_TYPE ? WRITE_PERMS : READ_PERMS;
   dw->fd = open(dw->fullPath, perms);
 
-  if (dw->fd)
-    set_last_error(dw, "Error opening file");  
+  if (dw->fd < 1)
+    set_last_error(dw, "Error opening file");
 
+  pthread_mutex_lock(&dw->openThread->mutex);
   pthread_cond_signal(&dw->openThread->condition);
+  pthread_mutex_unlock(&dw->openThread->mutex);
+
   return NULL;
 }
 
@@ -72,6 +75,7 @@ dw_instance *dw_init(
   dw_instance *dw = (dw_instance *)malloc(sizeof(dw_instance));
   dw->type = type;
   dw->userData = userData;
+  dw->fd = -1;
 
   dw->openThread = (dw_thread_info *)malloc(sizeof(dw_thread_info));
   pthread_cond_init(&dw->openThread->condition, NULL);
@@ -118,8 +122,8 @@ bool dw_open_pipe(dw_instance *dw, int overrideTimeoutMs) {
   struct timespec timeout;
   int timeoutMs = overrideTimeoutMs > -1 
     ? overrideTimeoutMs : dw->defaultTimeoutMs;
-  clock_gettime(CLOCK_REALTIME, &timeout);
-  dw_add_ms(&timeout, timeoutMs);
+
+  pthread_mutex_lock(&dw->openThread->mutex);
 
   pthread_create(
     &dw->openThread->thread, 
@@ -128,8 +132,8 @@ bool dw_open_pipe(dw_instance *dw, int overrideTimeoutMs) {
     (void *)dw
   );
 
-  // TODO: proper mutexing
-  pthread_mutex_lock(&dw->openThread->mutex);
+  clock_gettime(CLOCK_REALTIME, &timeout);
+  dw_add_ms(&timeout, timeoutMs);
 
   int waitResult = pthread_cond_timedwait(
     &dw->openThread->condition, 
@@ -190,9 +194,9 @@ void dw_add_ms(struct timespec *time, int ms) {
     time->tv_nsec += ms * 1000;
   }
   else {
-    // TODO: this more efficiently
-    int secs = ms / 1000;
-    time->tv_sec += secs;
-    time->tv_nsec += (ms - (secs * 1000)) * 1000;
+    time->tv_sec += ms / 1000;
+    time->tv_nsec += ms % 1000 * 1000;
   }
+
+  // TODO: handle nsec > 999,999
 }
