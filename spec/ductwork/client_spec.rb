@@ -35,7 +35,7 @@ RSpec.describe Client do
     end
 
     context 'when the pipe is opened for writing' do
-      it 'returns a pipe', :focus do
+      it 'returns a pipe' do
         pipe = nil
         thread = Thread.new { pipe = client.open(LONG_TIMEOUT) }
         `echo p00t >> #{FIFO_PATH}`
@@ -69,4 +69,8 @@ RSpec.describe Client do
       end
     end
   end
+
+  skip '#close'
+
+  skip '#read'
 end

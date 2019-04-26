@@ -1,14 +1,7 @@
 RSpec.describe Server do
   let(:server) { Server.new(FIFO_PATH) }
 
-  let(:client) { Ductwork::Client.new(FIFO_PATH) }
-
   before(:each) { File.delete(FIFO_PATH) if File.exist?(FIFO_PATH) }
-
-  after(:each) do
-    server.close if server.open?
-    client.close if client.open?
-  end
 
   it 'is a class' do
     expect(Server).to be_a Class
@@ -40,18 +33,20 @@ RSpec.describe Server do
 
     context "when the pipe isn't opened for reading" do
       it 'raises a timeout error' do
-        expect { 
-          server.open(SHORT_TIMEOUT) 
-        }.to raise_error Ductwork::TimeoutError
+        expect { server.open(SHORT_TIMEOUT) }.to raise_error TimeoutError
+        expect(server.open?).to be false
       end
     end
 
-    context 'when the pipe is already open for reading' do
-      it 'returns an open pipe' do
+    context 'when the pipe is opened for reading' do
+      it 'returns an open pipe', :focus do
+        pipe = nil
         Thread.new { `cat #{FIFO_PATH}` }
-        pipe = server.open
+        sleep(0.3)
+        thread = Thread.new { pipe = server.open }
+        thread.join
         expect(pipe).to be_a Pipe
-        expect { pipe.write('p00ts') }.not_to raise_error
+        server.close
       end
 
       context 'when a block is passed' do
@@ -61,6 +56,8 @@ RSpec.describe Server do
       end
     end
   end
+
+  skip '#open?'
 
   skip '#close'
 

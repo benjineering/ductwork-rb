@@ -8,11 +8,6 @@ RSpec.describe Pipe do
     server.create(LONG_TIMEOUT)
   end
 
-  after(:each) do
-    server.close if server.open?
-    client.close if client.open?
-  end
-
   it 'is a class' do
     expect(Pipe).to be_a Class
   end
@@ -35,9 +30,13 @@ RSpec.describe Pipe do
 
   describe '#write' do
     it 'is ok' do
+      pipe = nil
       Thread.new { `cat #{FIFO_PATH}` }
-      pipe = server.open
+      sleep(0.3)
+      thread = Thread.new { pipe = server.open }
+      thread.join
       expect { pipe.write('p00ts') }.not_to raise_error
+      server.close
     end
   end
 
