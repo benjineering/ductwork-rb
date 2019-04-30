@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <ruby/thread.h>
 #include "ductwork.h"
 
 #ifndef _WIN32
@@ -13,6 +14,12 @@ TypedData_Get_Struct(self, dw_instance, &dw_type, dw)
 #define UNWRAP_PARENT() \
 dw_instance *dw; \
 TypedData_Get_Struct(parent, dw_instance, &dw_type, dw)
+
+typedef struct _dw_open_param {
+  dw_instance *dw;
+  int timeout;
+  bool result;
+} _dw_open_param;
 
 VALUE Ductwork;
 VALUE Base;
@@ -36,6 +43,11 @@ static const rb_data_type_t dw_type = {
 	.data = NULL,
 	.flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
+
+void *_ductwork_open(_dw_open_param *param) {
+  param->result = dw_open_pipe(param->dw, param->timeout);
+  return NULL;
+}
 
 /*
  * Base
@@ -62,10 +74,16 @@ static VALUE ductwork_base_open(int argc, VALUE *argv, VALUE self) {
   }
 
   UNWRAP();
+  _dw_open_param param = { .dw = dw, .timeout = intTimeout };
+  
+  rb_thread_call_without_gvl(
+    (void *(*)(void *))_ductwork_open, 
+    &param, 
+    NULL, // TODO: make open interuptable
+    NULL
+  );
 
-  bool openOk = dw_open_pipe(dw, intTimeout);
-
-  if (!openOk) {
+  if (!param.result) {
     rb_raise(TimeoutError, "%s", "Open timed out");
     return Qnil;
   }

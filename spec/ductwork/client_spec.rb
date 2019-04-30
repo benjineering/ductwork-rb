@@ -34,11 +34,21 @@ RSpec.describe Client do
       end
     end
 
-    context 'when the pipe is opened for writing' do
+    context 'when the pipe is opened for reading first' do
       it 'returns a pipe' do
         pipe = nil
         thread = Thread.new { pipe = client.open(LONG_TIMEOUT) }
         `echo p00t >> #{FIFO_PATH}`
+        thread.join
+        expect(pipe).to be_a Pipe
+        client.close
+      end
+    end
+
+    context 'when the pipe is opened for writing first' do
+      it 'returns a pipe' do
+        thread = Thread.new { `echo p00t >> #{FIFO_PATH}` }
+        pipe = client.open(LONG_TIMEOUT)
         thread.join
         expect(pipe).to be_a Pipe
         client.close

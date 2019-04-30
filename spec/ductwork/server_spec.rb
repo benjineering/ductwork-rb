@@ -38,15 +38,25 @@ RSpec.describe Server do
       end
     end
 
-    context 'when the pipe is opened for reading' do
-      it 'returns an open pipe', :focus do
+    context 'when the pipe is opened for reading first' do
+      it 'returns an open pipe' do
         pipe = nil
         Thread.new { `cat #{FIFO_PATH}` }
-        sleep(0.3)
         thread = Thread.new { pipe = server.open }
         thread.join
         expect(pipe).to be_a Pipe
         server.close
+      end
+
+      context 'when the pipe is opened for writing first' do
+        it 'returns an open pipe', :focus do
+          pipe = nil
+          thread = Thread.new { pipe = server.open }
+          Thread.new { `cat #{FIFO_PATH}` }          
+          thread.join
+          expect(pipe).to be_a Pipe
+          server.close
+        end
       end
 
       context 'when a block is passed' do
