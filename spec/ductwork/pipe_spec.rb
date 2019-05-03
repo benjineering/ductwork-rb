@@ -28,19 +28,27 @@ RSpec.describe Pipe do
     end
   end
 
+  describe '#read' do
+    it 'is ok' do
+      pipe = nil
+      thread = Thread.new { pipe = client.open(LONG_TIMEOUT) }
+      `echo p00t >> #{FIFO_PATH}`
+      thread.join
+      expect { pipe.read(100) }.not_to raise_error
+      client.close
+    end
+  end
+
   describe '#write' do
     it 'is ok' do
       pipe = nil
       Thread.new { `cat #{FIFO_PATH}` }
-      sleep(0.3)
       thread = Thread.new { pipe = server.open }
       thread.join
       expect { pipe.write('p00ts') }.not_to raise_error
       server.close
     end
   end
-
-  skip '#read'
 
   skip '#readable?'
 
